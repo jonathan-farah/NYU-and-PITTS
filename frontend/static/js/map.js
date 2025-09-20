@@ -76,8 +76,8 @@ function setupEventListeners() {
     const endFilter = document.getElementById('route-end-filter');
     const findPathButton = document.getElementById('find-path');
 
-    // Hold a reference to the drawn path so we can remove it
-    let currentPathLayer = null;
+    // Hold a reference to the routing control so we can remove it
+    let currentRoutingControl = null;
     // Layer group for event markers (so we can toggle them)
     let eventsLayer = L.layerGroup().addTo(window.pittMap);
     let eventsCache = [];
@@ -325,42 +325,41 @@ function setupEventListeners() {
         const e = endSelect.value;
         if (!s || !e) return alert('Select start and end buildings.');
 
-        try {
-            const res = await fetch(`/api/pathfind?start=${encodeURIComponent(s)}&end=${encodeURIComponent(e)}`);
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || 'Pathfinding failed');
+        // Find building objects for selected start/end
+        const startBuilding = buildingsCache.find(b => b.id == s);
+        const endBuilding = buildingsCache.find(b => b.id == e);
+        if (!startBuilding || !endBuilding) return alert('Could not find building coordinates.');
 
-            // Remove existing path layer
-            if (currentPathLayer) {
-                window.pittMap.removeLayer(currentPathLayer);
-                currentPathLayer = null;
-            }
-
-            // Extract lat/lng for each building in path. We expect building rows to have Address only currently, so try using approximate logic:
-            const latlngs = [];
-            json.path.forEach(b => {
-                // If building has lat/lng fields, use them; otherwise we can't draw accurate lines.
-                if (b.latitude && b.longitude) {
-                    latlngs.push([parseFloat(b.latitude), parseFloat(b.longitude)]);
-                } else if (b.lat && b.lng) {
-                    latlngs.push([parseFloat(b.lat), parseFloat(b.lng)]);
-                } else {
-                    // No coordinates available; skip marker. In simple case we can try to geocode address, but that's outside scope.
-                    console.warn('No coordinates for building in path:', b);
-                }
-            });
-
-            if (latlngs.length >= 2) {
-                currentPathLayer = L.polyline(latlngs, { color: 'red', weight: 4 }).addTo(window.pittMap);
-                window.pittMap.fitBounds(currentPathLayer.getBounds().pad(0.15));
-            } else {
-                alert('Path returned but buildings do not contain coordinate information to draw the route.');
-            }
-
-        } catch (err) {
-            console.error('Pathfinding error:', err);
-            alert('Unable to find path. See console for details.');
+        // Get coordinates
+        let startCoords = null, endCoords = null;
+        if (startBuilding.latitude && startBuilding.longitude) {
+            startCoords = L.latLng(parseFloat(startBuilding.latitude), parseFloat(startBuilding.longitude));
+        } else if (startBuilding.lat && startBuilding.lng) {
+            startCoords = L.latLng(parseFloat(startBuilding.lat), parseFloat(startBuilding.lng));
         }
+        if (endBuilding.latitude && endBuilding.longitude) {
+            endCoords = L.latLng(parseFloat(endBuilding.latitude), parseFloat(endBuilding.longitude));
+        } else if (endBuilding.lat && endBuilding.lng) {
+            endCoords = L.latLng(parseFloat(endBuilding.lat), parseFloat(endBuilding.lng));
+        }
+        if (!startCoords || !endCoords) return alert('Selected buildings do not have coordinates.');
+
+        // Remove existing routing control
+        if (currentRoutingControl) {
+            window.pittMap.removeControl(currentRoutingControl);
+            currentRoutingControl = null;
+        }
+
+        // Add Leaflet Routing Machine control
+        currentRoutingControl = L.Routing.control({
+            waypoints: [startCoords, endCoords],
+            routeWhileDragging: false,
+            show: false,
+            addWaypoints: false,
+            draggableWaypoints: false,
+            fitSelectedRoutes: true,
+            lineOptions: { styles: [{ color: 'blue', weight: 5 }] }
+        }).addTo(window.pittMap);
     }
 
     if (startSelect && endSelect) {
