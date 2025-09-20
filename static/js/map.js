@@ -15,47 +15,7 @@ function initializeMap() {
         maxZoom: 19
     }).addTo(map);
 
-    const cathedralMarker = L.marker(CAMPUS_CENTER).addTo(map);
-    cathedralMarker.bindPopup(`
-        <div class="popup-content">
-            <h3>Cathedral of Learning</h3>
-            <p>The iconic centerpiece of the University of Pittsburgh Oakland campus.</p>
-            <p><strong>Address:</strong> 4200 Fifth Ave, Pittsburgh, PA 15260</p>
-        </div>
-    `);
-
-    const campusBuildings = [
-        {
-            name: "Hillman Library",
-            coords: [40.4448, -79.9615],
-            description: "Main library of the University of Pittsburgh"
-        },
-        {
-            name: "William Pitt Union",
-            coords: [40.4440, -79.9595],
-            description: "Student union building"
-        },
-        {
-            name: "Posvar Hall",
-            coords: [40.4435, -79.9620],
-            description: "Social sciences building"
-        },
-        {
-            name: "Benedum Hall",
-            coords: [40.4430, -79.9600],
-            description: "Engineering building"
-        }
-    ];
-
-    campusBuildings.forEach(building => {
-        const marker = L.marker(building.coords).addTo(map);
-        marker.bindPopup(`
-            <div class="popup-content">
-                <h3>${building.name}</h3>
-                <p>${building.description}</p>
-            </div>
-        `);
-    });
+    // No specific location markers for now
 
     window.pittMap = map;
 }
@@ -68,14 +28,6 @@ function setupEventListeners() {
             if (window.pittMap) {
                 window.pittMap.setView(CAMPUS_CENTER, CAMPUS_ZOOM);
             }
-        });
-    }
-
-    const toggleButton = document.getElementById('toggle-buildings');
-    if (toggleButton) {
-        toggleButton.addEventListener('click', function() {
-            console.log('Toggle buildings functionality - to be implemented');
-            alert('Building toggle feature will be available when building data is added!');
         });
     }
 }
