@@ -82,6 +82,62 @@ function setupEventListeners() {
     let eventsLayer = L.layerGroup().addTo(window.pittMap);
     let eventsCache = [];
 
+    // Event queue implementation (FIFO) with expiry support
+    class QueueNode {
+        constructor(value) {
+            this.value = value;
+            this.next = null;
+        }
+    }
+    class Queue {
+        constructor() {
+            this.head = null;
+            this.tail = null;
+            this.length = 0;
+        }
+        enqueue(value) {
+            const node = new QueueNode(value);
+            if (!this.head) {
+                this.head = node;
+                this.tail = node;
+            } else {
+                this.tail.next = node;
+                this.tail = node;
+            }
+            this.length++;
+        }
+        dequeue() {
+            if (!this.head) return null;
+            const val = this.head.value;
+            this.head = this.head.next;
+            if (!this.head) this.tail = null;
+            this.length--;
+            return val;
+        }
+        peek() {
+            return this.head ? this.head.value : null;
+        }
+        toArray() {
+            const out = [];
+            let cur = this.head;
+            while (cur) {
+                out.push(cur.value);
+                cur = cur.next;
+            }
+            return out;
+        }
+    }
+
+    // Map buildingRowId -> Queue of events
+    let buildingEventsMap = {};
+    // Map event unique key -> Leaflet marker for removal when event expires
+    let eventsMarkerMap = {};
+    // Default TTL for an event (ms). Assumption: 1 hour. Can be changed by setting window.PittFindEventTTL
+    const EVENT_TTL_MS = (window.PittFindEventTTL && Number(window.PittFindEventTTL)) ? Number(window.PittFindEventTTL) : 60 * 60 * 1000;
+    // Purger interval (ms)
+    const PURGE_INTERVAL_MS = 10 * 1000; // every 10s
+    let purgeIntervalId = null;
+
     // Keep a cached copy of full building list so filtering can be done client-side
     let buildingsCache = [];
 
@@ -302,23 +358,138 @@ function setupEventListeners() {
 
     function renderEventMarkers(events) {
         eventsLayer.clearLayers();
+        // build per-building queues and register markers
+        buildingEventsMap = {};
+        eventsMarkerMap = {};
+        const now = Date.now();
+        events.forEach(ev => {
+            const bId = ev.building_rowid || ev.building_id || ev.building || ev.buildingRowId || ev.buildingRow || null;
+            // attach a received timestamp if not present
+            if (!ev._receivedAt) ev._receivedAt = now;
+            if (bId) {
+                if (!buildingEventsMap[String(bId)]) buildingEventsMap[String(bId)] = new Queue();
+                buildingEventsMap[String(bId)].enqueue(ev);
+            }
+        });
         events.forEach(ev => {
             const lat = ev.latitude || ev.lat;
             const lng = ev.longitude || ev.lng;
             if (lat && lng) {
                 const m = L.marker([parseFloat(lat), parseFloat(lng)], { title: ev.name || 'Event' });
+                // include a small link to view all events for this building
+                const bId = ev.building_rowid || ev.building_id || ev.building || ev.buildingRowId || ev.buildingRow || null;
                 const popupHtml = `
                     <div class="popup-event">
                         <h3>${ev.name || 'Event'}</h3>
                         <p>${ev.description || ''}</p>
                         <p class="text-muted">${ev.time || ''}</p>
+                        ${bId ? `<p><a href="#" class="view-all-events" data-bid="${bId}">View all events at this building</a></p>` : ''}
                     </div>
                 `;
                 m.bindPopup(popupHtml);
+                m.on('popupopen', function() {
+                    // attach click handler for "View all events"
+                    setTimeout(() => {
+                        const link = document.querySelector('.view-all-events[data-bid="' + bId + '"]');
+                        if (link) {
+                            link.addEventListener('click', function(evnt) {
+                                evnt.preventDefault();
+                                openEventsListModal(bId);
+                            });
+                        }
+                    }, 50);
+                });
                 eventsLayer.addLayer(m);
+                // store marker for potential removal later; use event id or a generated key
+                const key = ev.id || ev.event_id || (`evt-${String(Math.random()).slice(2,10)}`);
+                // persist the marker key on the event so purge can find it even if backend omits id
+                ev._markerKey = String(key);
+                eventsMarkerMap[String(key)] = { marker: m, event: ev };
             }
         });
+
+        // start purge interval
+        if (purgeIntervalId) clearInterval(purgeIntervalId);
+        purgeIntervalId = setInterval(purgeOldEvents, PURGE_INTERVAL_MS);
     }
+
+    // Remove expired events from queues and markers
+    function purgeOldEvents() {
+        const now = Date.now();
+        // For each building queue, dequeue while head is expired
+        Object.keys(buildingEventsMap).forEach(bid => {
+            const q = buildingEventsMap[bid];
+            if (!q || !q.head) return;
+            while (q.head) {
+                const ev = q.peek();
+                const received = ev._receivedAt || now;
+                if ((now - received) > EVENT_TTL_MS) {
+                    // expired
+                    const popped = q.dequeue();
+                    // remove any marker associated with this event
+                    const key = popped._markerKey || popped.id || popped.event_id || null;
+                    if (key && eventsMarkerMap[String(key)]) {
+                        try { window.pittMap.removeLayer(eventsMarkerMap[String(key)].marker); } catch (e) {}
+                        delete eventsMarkerMap[String(key)];
+                    }
+                } else break; // head not expired -> stop
+            }
+            // if queue became empty, delete it
+            if (q.length === 0) delete buildingEventsMap[bid];
+        });
+        // update UI modal if open
+        const modal = document.getElementById('events-list-modal');
+        if (modal && modal.style.display === 'flex') {
+            const nameEl = document.getElementById('events-modal-building-name');
+            const buildingName = nameEl ? nameEl.textContent : null;
+            if (buildingName) {
+                // try to find building id by name (best-effort)
+                const b = buildingsCache.find(x => (x.Building_Name || x.name || x.Abbr || (`Bldg ${x.BldgNo}`)) === buildingName);
+                if (b) {
+                    // re-render modal content
+                    openEventsListModal(b.id);
+                }
+            }
+        }
+    }
+
+    // Open modal showing linked-list of events for building id
+    function openEventsListModal(buildingId) {
+        const modal = document.getElementById('events-list-modal');
+        const nameEl = document.getElementById('events-modal-building-name');
+        const listEl = document.getElementById('events-modal-list');
+        if (!modal || !listEl) return;
+        // find building name for display
+        const b = buildingsCache.find(x => String(x.id) === String(buildingId));
+        nameEl.textContent = b ? (b.Building_Name || b.name || b.Abbr || `Bldg ${b.BldgNo}`) : `Building ${buildingId}`;
+        // render linked list
+        listEl.innerHTML = '';
+        const ll = buildingEventsMap[String(buildingId)];
+        const container = document.createElement('div');
+        container.className = 'events-list';
+        if (!ll) {
+            container.textContent = 'No events found for this building.';
+        } else {
+            let node = ll.head;
+            while (node) {
+                const ev = node.value;
+                const n = document.createElement('div');
+                n.className = 'event-node';
+                n.innerHTML = `<h4>${ev.name || 'Event'}</h4><p>${ev.time || ''} — ${ev.description || ''}</p>`;
+                container.appendChild(n);
+                node = node.next;
+            }
+        }
+        listEl.appendChild(container);
+        modal.style.display = 'flex';
+    }
+
+    // Close events modal
+    const eventsModalClose = document.getElementById('events-modal-close');
+    if (eventsModalClose) eventsModalClose.addEventListener('click', function() {
+        const modal = document.getElementById('events-list-modal');
+        if (modal) modal.style.display = 'none';
+    });
 
     async function findPath() {
         const s = startSelect.value;
@@ -551,3 +722,10 @@ window.PittFindMap = {
     CAMPUS_CENTER,
     CAMPUS_ZOOM
 };
+
+// Cleanup timers on unload
+window.addEventListener('unload', function() {
+    try {
+        if (purgeIntervalId) clearInterval(purgeIntervalId);
+    } catch (e) {}
+});

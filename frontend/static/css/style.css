@@ -244,3 +244,8 @@ body {
 .modal-box label { display:block; margin-top:8px; font-weight:600; }
 .modal-box input, .modal-box select, .modal-box textarea { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ddd; }
 .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+
+.events-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+.event-node { padding:8px; border-radius:6px; background:#f1f5f9; border:1px solid #e2e8f0; }
+.event-node h4 { margin-bottom:4px; font-size:1rem; }
+.event-node p { margin:0; font-size:0.9rem; color:#334155; }
