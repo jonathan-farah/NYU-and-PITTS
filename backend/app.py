@@ -1,6 +1,9 @@
 from flask import Flask, render_template, send_from_directory
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='../frontend/templates',
+            static_folder='../frontend/static')
 app.config['SECRET_KEY'] = 'pittfind-hackathon-2025'
 
 @app.route('/')
@@ -11,7 +14,7 @@ def index():
 @app.route('/static/<path:filename>')
 def static_files(filename):
     """Serve static files (CSS, JS, images)"""
-    return send_from_directory('static', filename)
+    return send_from_directory('../frontend/static', filename)
 
 @app.route('/health')
 def health_check():
