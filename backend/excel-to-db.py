@@ -3,7 +3,7 @@ import sqlite3
 import re
 
 xlsx_path = "buildings.xlsx"
-db_path   = "buildings.db"
+db_path   = "app.db"
 table     = "buildings"
 
 # 1) Read the right sheet and keep *everything* as text so nothing turns into NaN unexpectedly

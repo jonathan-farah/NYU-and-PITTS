@@ -26,7 +26,10 @@ def health_check():
 
 def get_db_path():
     # Database lives in the backend folder
-    return os.path.join(os.path.dirname(__file__), 'buildings.db')
+    p = os.path.join(os.path.dirname(__file__), 'app.db')
+    if not os.path.exists(p):
+        return None
+    return p
 
 
 @app.route('/api/buildings')
@@ -35,7 +38,12 @@ def api_buildings():
     Each building is returned as a dict with its columns. We use ROWID as `id`.
     """
     db = get_db_path()
-    conn = sqlite3.connect(db)
+    if not db:
+        return jsonify({'error': 'Server database not found.'}), 500
+    try:
+        conn = sqlite3.connect(db)
+    except Exception as e:
+        return jsonify({'error': 'Failed to open database: ' + str(e)}), 500
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 

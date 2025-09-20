@@ -89,10 +89,22 @@ function setupEventListeners() {
             const res = await fetch('/api/buildings');
             if (!res.ok) throw new Error('Failed to load buildings');
             const data = await res.json();
-
-            // Clear existing options
+            // Clear existing options and add placeholder
             startSelect.innerHTML = '';
             endSelect.innerHTML = '';
+            const placeholder1 = document.createElement('option');
+            placeholder1.value = '';
+            placeholder1.textContent = '-- Select start --';
+            placeholder1.disabled = true;
+            placeholder1.selected = true;
+            startSelect.appendChild(placeholder1);
+
+            const placeholder2 = document.createElement('option');
+            placeholder2.value = '';
+            placeholder2.textContent = '-- Select end --';
+            placeholder2.disabled = true;
+            placeholder2.selected = true;
+            endSelect.appendChild(placeholder2);
 
             data.forEach(b => {
                 const label = b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`);
@@ -104,8 +116,25 @@ function setupEventListeners() {
                 const opt2 = opt1.cloneNode(true);
                 endSelect.appendChild(opt2);
             });
+
+            // enable selects if disabled
+            startSelect.disabled = false;
+            endSelect.disabled = false;
         } catch (e) {
             console.error('Error loading buildings:', e);
+            // leave selects with a single disabled option to show failure
+            startSelect.innerHTML = '';
+            endSelect.innerHTML = '';
+            const o = document.createElement('option');
+            o.value = '';
+            o.textContent = '-- Unable to load buildings --';
+            o.disabled = true;
+            o.selected = true;
+            startSelect.appendChild(o.cloneNode(true));
+            endSelect.appendChild(o.cloneNode(true));
+            startSelect.disabled = true;
+            endSelect.disabled = true;
+            alert('Failed to load building list from server. See console for details.');
         }
     }
 

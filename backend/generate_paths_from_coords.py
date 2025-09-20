@@ -15,7 +15,7 @@ import math
 
 
 def get_db_path():
-    return os.path.join(os.path.dirname(__file__), 'buildings.db')
+    return os.path.join(os.path.dirname(__file__), 'app.db')
 
 
 def haversine(lat1, lon1, lat2, lon2):
