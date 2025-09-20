@@ -101,6 +101,17 @@ body {
     box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
 
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #e0a800 0%, #ffc107 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
 .footer {
     background-color: #003366;
     color: white;
