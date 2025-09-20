@@ -54,6 +54,26 @@
         </div>
     </main>
 
+    <!-- Place marker modal (hidden by default) -->
+    <div id="place-marker-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h3>Place Marker at Building</h3>
+            <label for="place-marker-building">Building</label>
+            <select id="place-marker-building"></select>
+
+            <label for="place-marker-title">Title</label>
+            <input id="place-marker-title" type="text" placeholder="Marker title">
+
+            <label for="place-marker-desc">Description</label>
+            <textarea id="place-marker-desc" rows="3" placeholder="Optional description"></textarea>
+
+            <div class="modal-actions">
+                <button id="place-marker-confirm" class="btn btn-success">Place Marker</button>
+                <button id="place-marker-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="container">

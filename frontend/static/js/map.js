@@ -15,16 +15,9 @@ function initializeMap() {
 
     window.pittMap = map;
     
-    // Add click handler for dropping markers
+    // Click handler retained but drop-mode handled via modal selection now
     map.on('click', function(e) {
-        if (dropMarkerMode) {
-            const title = prompt('Enter marker title:');
-            if (title) {
-                const description = prompt('Enter marker description (optional):') || '';
-                addCustomMarker([e.latlng.lat, e.latlng.lng], title, description);
-                toggleDropMarkerMode(); // Turn off drop mode after placing marker
-            }
-        }
+        // no-op: placing markers is done through the preset-building modal
     });
 }
 
@@ -42,7 +35,7 @@ function setupEventListeners() {
     const dropMarkerButton = document.getElementById('drop-marker');
     if (dropMarkerButton) {
         dropMarkerButton.addEventListener('click', function() {
-            toggleDropMarkerMode();
+            openPlaceMarkerModal();
         });
     }
 
@@ -115,8 +108,8 @@ function setupEventListeners() {
             placeholder2.selected = true;
             endSelect.appendChild(placeholder2);
 
-            // Render all options
-            function renderOptions(list) {
+            // Render all options. `prevSelections` is an object { start: value, end: value }
+            function renderOptions(list, prevSelections = {}) {
                 // keep the placeholder at index 0
                 startSelect.innerHTML = '';
                 endSelect.innerHTML = '';
@@ -145,23 +138,54 @@ function setupEventListeners() {
                     const opt2 = opt1.cloneNode(true);
                     endSelect.appendChild(opt2);
                 });
+
+                // Restore previous selection if still present in the new option list
+                if (prevSelections.start) {
+                    const match = startSelect.querySelector(`option[value="${prevSelections.start}"]`);
+                    if (match) {
+                        match.selected = true;
+                        // ensure placeholder is not selected
+                        if (placeholder1) placeholder1.selected = false;
+                    }
+                }
+                if (prevSelections.end) {
+                    const match2 = endSelect.querySelector(`option[value="${prevSelections.end}"]`);
+                    if (match2) {
+                        match2.selected = true;
+                        if (placeholder2) placeholder2.selected = false;
+                    }
+                }
             }
 
-            renderOptions(buildingsCache);
+            // initial render: pass current selections (empty at first)
+            renderOptions(buildingsCache, { start: startSelect.value, end: endSelect.value });
 
             // Attach filter listeners (idempotent)
+            // Check if `needle` is a subsequence of `haystack` (letters in same order, not necessarily contiguous)
+            function isSubsequence(needle, haystack) {
+                if (!needle) return true;
+                let i = 0, j = 0;
+                while (i < needle.length && j < haystack.length) {
+                    if (needle[i] === haystack[j]) i++;
+                    j++;
+                }
+                return i === needle.length;
+            }
+
             function filterOptions(filterValue, selectEl) {
                 const q = (filterValue || '').trim().toLowerCase();
+                const prev = { start: startSelect.value, end: endSelect.value };
                 // If no query, render full list
                 if (!q) {
-                    renderOptions(buildingsCache);
+                    renderOptions(buildingsCache, prev);
                     return;
                 }
                 const filtered = buildingsCache.filter(b => {
                     const label = (b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`)).toLowerCase();
-                    return label.indexOf(q) !== -1;
+                    // Use subsequence matching: typed letters must appear in the same order in the label
+                    return isSubsequence(q, label);
                 });
-                renderOptions(filtered);
+                renderOptions(filtered, prev);
             }
 
             if (startFilter) {
@@ -178,6 +202,25 @@ function setupEventListeners() {
             // enable selects if disabled
             startSelect.disabled = false;
             endSelect.disabled = false;
+
+            // populate place-marker-building select if modal present
+            const placeSelect = document.getElementById('place-marker-building');
+            if (placeSelect) {
+                placeSelect.innerHTML = '';
+                const ph = document.createElement('option');
+                ph.value = '';
+                ph.textContent = '-- Choose building --';
+                ph.disabled = true;
+                ph.selected = true;
+                placeSelect.appendChild(ph);
+                buildingsCache.forEach(b => {
+                    const lab = b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`);
+                    const o = document.createElement('option');
+                    o.value = b.id;
+                    o.textContent = lab;
+                    placeSelect.appendChild(o);
+                });
+            }
         } catch (e) {
             console.error('Error loading buildings:', e);
             // leave selects with a single disabled option to show failure
@@ -207,6 +250,54 @@ function setupEventListeners() {
         } catch (err) {
             console.warn('Could not load events:', err);
         }
+    }
+
+    // Modal controls for placing a marker at a preset building
+    function openPlaceMarkerModal() {
+        const overlay = document.getElementById('place-marker-modal');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        // clear inputs
+        const title = document.getElementById('place-marker-title');
+        const desc = document.getElementById('place-marker-desc');
+        if (title) title.value = '';
+        if (desc) desc.value = '';
+    }
+
+    function closePlaceMarkerModal() {
+        const overlay = document.getElementById('place-marker-modal');
+        if (!overlay) return;
+        overlay.style.display = 'none';
+    }
+
+    // Wire modal buttons
+    const placeConfirm = document.getElementById('place-marker-confirm');
+    const placeCancel = document.getElementById('place-marker-cancel');
+    if (placeCancel) placeCancel.addEventListener('click', closePlaceMarkerModal);
+    if (placeConfirm) {
+        placeConfirm.addEventListener('click', function() {
+            const placeSelect = document.getElementById('place-marker-building');
+            const titleInput = document.getElementById('place-marker-title');
+            const descInput = document.getElementById('place-marker-desc');
+            if (!placeSelect || !placeSelect.value) {
+                alert('Please choose a building to place the marker at.');
+                return;
+            }
+            const bid = placeSelect.value;
+            const b = buildingsCache.find(x => String(x.id) === String(bid));
+            if (!b) {
+                alert('Selected building not found.');
+                return;
+            }
+            const lat = b.latitude || b.lat;
+            const lng = b.longitude || b.lng;
+            if (!(lat && lng)) {
+                alert('Selected building does not have coordinates.');
+                return;
+            }
+            addCustomMarker([parseFloat(lat), parseFloat(lng)], titleInput.value || (b.Building_Name || b.name || 'Marker'), descInput.value || '');
+            closePlaceMarkerModal();
+        });
     }
 
     function renderEventMarkers(events) {

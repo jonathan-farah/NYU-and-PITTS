@@ -219,3 +219,28 @@ body {
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Modal for placing markers at preset buildings */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal-box {
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    width: 420px;
+    max-width: calc(100% - 32px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+.modal-box h3 {
+    margin-bottom: 10px;
+}
+.modal-box label { display:block; margin-top:8px; font-weight:600; }
+.modal-box input, .modal-box select, .modal-box textarea { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ddd; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
