@@ -152,6 +152,51 @@ def api_pathfind():
     conn.close()
     return jsonify({'path': buildings, 'distance': total_dist})
 
+
+@app.route('/api/events')
+def api_events():
+    """Return current events. If an `events` table exists, return rows joined with building coords when possible.
+    Expected `events` table columns (flexible): id, name, description, building_rowid, latitude, longitude, time
+    If no events table exists, return an empty list (200).
+    """
+    db = get_db_path()
+    if not db:
+        return jsonify([])
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Check for events table
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
+    if not cur.fetchone():
+        conn.close()
+        return jsonify([])
+
+    # Attempt to return useful fields, joining to buildings for coords when possible
+    try:
+        cur.execute('SELECT * FROM events')
+        events = [dict(r) for r in cur.fetchall()]
+    except Exception:
+        conn.close()
+        return jsonify([])
+
+    # For each event, if it references a building_rowid, try to fetch lat/lng
+    for ev in events:
+        lat = ev.get('latitude') or ev.get('lat')
+        lng = ev.get('longitude') or ev.get('lng')
+        if (lat is None or lng is None) and ev.get('building_rowid'):
+            try:
+                cur.execute('SELECT latitude, longitude FROM buildings WHERE rowid = ?', (ev.get('building_rowid'),))
+                b = cur.fetchone()
+                if b:
+                    ev['latitude'] = b['latitude']
+                    ev['longitude'] = b['longitude']
+            except Exception:
+                pass
+
+    conn.close()
+    return jsonify(events)
+
 # Future API endpoints:
 # @app.route('/api/buildings')
 # @app.route('/api/events') 

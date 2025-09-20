@@ -79,16 +79,25 @@ function setupEventListeners() {
     // Populate building selects and handle pathfinding
     const startSelect = document.getElementById('route-start');
     const endSelect = document.getElementById('route-end');
+    const startFilter = document.getElementById('route-start-filter');
+    const endFilter = document.getElementById('route-end-filter');
     const findPathButton = document.getElementById('find-path');
 
     // Hold a reference to the drawn path so we can remove it
     let currentPathLayer = null;
+    // Layer group for event markers (so we can toggle them)
+    let eventsLayer = L.layerGroup().addTo(window.pittMap);
+    let eventsCache = [];
+
+    // Keep a cached copy of full building list so filtering can be done client-side
+    let buildingsCache = [];
 
     async function loadBuildings() {
         try {
             const res = await fetch('/api/buildings');
             if (!res.ok) throw new Error('Failed to load buildings');
             const data = await res.json();
+            buildingsCache = data.slice();
             // Clear existing options and add placeholder
             startSelect.innerHTML = '';
             endSelect.innerHTML = '';
@@ -106,16 +115,65 @@ function setupEventListeners() {
             placeholder2.selected = true;
             endSelect.appendChild(placeholder2);
 
-            data.forEach(b => {
-                const label = b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`);
-                const opt1 = document.createElement('option');
-                opt1.value = b.id;
-                opt1.textContent = label;
-                startSelect.appendChild(opt1);
+            // Render all options
+            function renderOptions(list) {
+                // keep the placeholder at index 0
+                startSelect.innerHTML = '';
+                endSelect.innerHTML = '';
+                const placeholder1 = document.createElement('option');
+                placeholder1.value = '';
+                placeholder1.textContent = '-- Select start --';
+                placeholder1.disabled = true;
+                placeholder1.selected = true;
+                startSelect.appendChild(placeholder1);
 
-                const opt2 = opt1.cloneNode(true);
-                endSelect.appendChild(opt2);
-            });
+                const placeholder2 = document.createElement('option');
+                placeholder2.value = '';
+                placeholder2.textContent = '-- Select end --';
+                placeholder2.disabled = true;
+                placeholder2.selected = true;
+                endSelect.appendChild(placeholder2);
+
+                list.forEach(b => {
+                    const label = b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`);
+                    const opt1 = document.createElement('option');
+                    opt1.value = b.id;
+                    opt1.textContent = label;
+                    opt1.dataset.label = label.toLowerCase();
+                    startSelect.appendChild(opt1);
+
+                    const opt2 = opt1.cloneNode(true);
+                    endSelect.appendChild(opt2);
+                });
+            }
+
+            renderOptions(buildingsCache);
+
+            // Attach filter listeners (idempotent)
+            function filterOptions(filterValue, selectEl) {
+                const q = (filterValue || '').trim().toLowerCase();
+                // If no query, render full list
+                if (!q) {
+                    renderOptions(buildingsCache);
+                    return;
+                }
+                const filtered = buildingsCache.filter(b => {
+                    const label = (b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`)).toLowerCase();
+                    return label.indexOf(q) !== -1;
+                });
+                renderOptions(filtered);
+            }
+
+            if (startFilter) {
+                startFilter.addEventListener('input', function(e) {
+                    filterOptions(e.target.value, startSelect);
+                });
+            }
+            if (endFilter) {
+                endFilter.addEventListener('input', function(e) {
+                    filterOptions(e.target.value, endSelect);
+                });
+            }
 
             // enable selects if disabled
             startSelect.disabled = false;
@@ -136,6 +194,39 @@ function setupEventListeners() {
             endSelect.disabled = true;
             alert('Failed to load building list from server. See console for details.');
         }
+    }
+
+    // Load events from server and render them as markers
+    async function loadEvents() {
+        try {
+            const res = await fetch('/api/events');
+            if (!res.ok) throw new Error('Failed to load events');
+            const evs = await res.json();
+            eventsCache = evs;
+            renderEventMarkers(evs);
+        } catch (err) {
+            console.warn('Could not load events:', err);
+        }
+    }
+
+    function renderEventMarkers(events) {
+        eventsLayer.clearLayers();
+        events.forEach(ev => {
+            const lat = ev.latitude || ev.lat;
+            const lng = ev.longitude || ev.lng;
+            if (lat && lng) {
+                const m = L.marker([parseFloat(lat), parseFloat(lng)], { title: ev.name || 'Event' });
+                const popupHtml = `
+                    <div class="popup-event">
+                        <h3>${ev.name || 'Event'}</h3>
+                        <p>${ev.description || ''}</p>
+                        <p class="text-muted">${ev.time || ''}</p>
+                    </div>
+                `;
+                m.bindPopup(popupHtml);
+                eventsLayer.addLayer(m);
+            }
+        });
     }
 
     async function findPath() {
@@ -185,9 +276,30 @@ function setupEventListeners() {
         loadBuildings();
     }
 
+    // Load events on init
+    loadEvents();
+
     if (findPathButton) {
         findPathButton.addEventListener('click', function() {
             findPath();
+        });
+    }
+
+    // Toggle events button
+    const toggleEventsButton = document.getElementById('toggle-events');
+    if (toggleEventsButton) {
+        toggleEventsButton.addEventListener('click', function() {
+            if (window.pittMap.hasLayer(eventsLayer)) {
+                window.pittMap.removeLayer(eventsLayer);
+                toggleEventsButton.textContent = 'Show Events';
+                toggleEventsButton.classList.remove('btn-danger');
+                toggleEventsButton.classList.add('btn-info');
+            } else {
+                window.pittMap.addLayer(eventsLayer);
+                toggleEventsButton.textContent = 'Hide Events';
+                toggleEventsButton.classList.remove('btn-info');
+                toggleEventsButton.classList.add('btn-danger');
+            }
         });
     }
 }
