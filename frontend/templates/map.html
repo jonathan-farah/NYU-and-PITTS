@@ -30,9 +30,18 @@
             
             <!-- Map Controls -->
             <div class="map-controls">
+                <div class="control-group route-controls">
+                    <label for="route-start">Start</label>
+                    <select id="route-start"></select>
+                    <label for="route-end">End</label>
+                    <select id="route-end"></select>
+                    <button id="find-path" class="btn btn-success">Find Path</button>
+                </div>
+
                 <div class="control-group">
                     <button id="center-campus" class="btn btn-primary">Center on Campus</button>
                     <button id="drop-marker" class="btn btn-secondary">Drop Marker</button>
+                    <button id="toggle-location" class="btn btn-outline-primary">Show My Location</button>
                 </div>
             </div>
         </div>
