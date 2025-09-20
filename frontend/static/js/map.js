@@ -164,57 +164,38 @@ function setupEventListeners() {
             placeholder2.selected = true;
             endSelect.appendChild(placeholder2);
 
-            // Render all options. `prevSelections` is an object { start: value, end: value }
-            function renderOptions(list, prevSelections = {}) {
-                // keep the placeholder at index 0
-                startSelect.innerHTML = '';
-                endSelect.innerHTML = '';
-                const placeholder1 = document.createElement('option');
-                placeholder1.value = '';
-                placeholder1.textContent = '-- Select start --';
-                placeholder1.disabled = true;
-                placeholder1.selected = true;
-                startSelect.appendChild(placeholder1);
-
-                const placeholder2 = document.createElement('option');
-                placeholder2.value = '';
-                placeholder2.textContent = '-- Select end --';
-                placeholder2.disabled = true;
-                placeholder2.selected = true;
-                endSelect.appendChild(placeholder2);
+            // Render options into a single select element and preserve its selection
+            function renderOptionsFor(selectEl, list, placeholderText = '-- Select --', prevValue = '') {
+                selectEl.innerHTML = '';
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = placeholderText;
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                selectEl.appendChild(placeholder);
 
                 list.forEach(b => {
                     const label = b.Building_Name || b.BuildingName || b.name || b.Abbr || (`Bldg ${b.BldgNo}`);
-                    const opt1 = document.createElement('option');
-                    opt1.value = b.id;
-                    opt1.textContent = label;
-                    opt1.dataset.label = label.toLowerCase();
-                    startSelect.appendChild(opt1);
-
-                    const opt2 = opt1.cloneNode(true);
-                    endSelect.appendChild(opt2);
+                    const opt = document.createElement('option');
+                    opt.value = b.id;
+                    opt.textContent = label;
+                    opt.dataset.label = label.toLowerCase();
+                    selectEl.appendChild(opt);
                 });
 
-                // Restore previous selection if still present in the new option list
-                if (prevSelections.start) {
-                    const match = startSelect.querySelector(`option[value="${prevSelections.start}"]`);
+                // Restore previous selection if still present
+                if (prevValue) {
+                    const match = selectEl.querySelector(`option[value="${prevValue}"]`);
                     if (match) {
                         match.selected = true;
-                        // ensure placeholder is not selected
-                        if (placeholder1) placeholder1.selected = false;
-                    }
-                }
-                if (prevSelections.end) {
-                    const match2 = endSelect.querySelector(`option[value="${prevSelections.end}"]`);
-                    if (match2) {
-                        match2.selected = true;
-                        if (placeholder2) placeholder2.selected = false;
+                        placeholder.selected = false;
                     }
                 }
             }
 
-            // initial render: pass current selections (empty at first)
-            renderOptions(buildingsCache, { start: startSelect.value, end: endSelect.value });
+            // initial render: populate each select independently, preserving current selections
+            renderOptionsFor(startSelect, buildingsCache, '-- Select start --', startSelect.value);
+            renderOptionsFor(endSelect, buildingsCache, '-- Select end --', endSelect.value);
 
             // Attach filter listeners (idempotent)
             // Check if `needle` is a subsequence of `haystack` (letters in same order, not necessarily contiguous)
@@ -230,10 +211,11 @@ function setupEventListeners() {
 
             function filterOptions(filterValue, selectEl) {
                 const q = (filterValue || '').trim().toLowerCase();
-                const prev = { start: startSelect.value, end: endSelect.value };
-                // If no query, render full list
+                // If no query, render full list for the specific select only
+                const placeholderText = (selectEl === startSelect) ? '-- Select start --' : '-- Select end --';
+                const prevValue = selectEl.value;
                 if (!q) {
-                    renderOptions(buildingsCache, prev);
+                    renderOptionsFor(selectEl, buildingsCache, placeholderText, prevValue);
                     return;
                 }
                 const filtered = buildingsCache.filter(b => {
@@ -241,7 +223,7 @@ function setupEventListeners() {
                     // Use subsequence matching: typed letters must appear in the same order in the label
                     return isSubsequence(q, label);
                 });
-                renderOptions(filtered, prev);
+                renderOptionsFor(selectEl, filtered, placeholderText, prevValue);
             }
 
             if (startFilter) {
