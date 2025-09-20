@@ -66,6 +66,35 @@ body {
     justify-content: center;
 }
 
+/* Route select + filter input sizing
+   Keep the filter typing bars at a large fixed width on desktop (don't shrink)
+   but allow them to become full-width on small screens. */
+.route-select {
+    display: flex;
+    flex-direction: column;
+    /* fixed preferred width on wide screens */
+    width: 340px;
+    min-width: 220px;
+    /* prevent flex children from shrinking below this width */
+    flex: 0 0 340px;
+}
+
+.route-select input[type="search"],
+.route-select select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    border: 1px solid #cfcfcf;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.route-select label {
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
 .btn {
     padding: 12px 24px;
     border: none;
@@ -145,6 +174,13 @@ body {
     
     .btn {
         width: 200px;
+    }
+
+    /* Make route selectors full-width on smaller screens */
+    .route-select {
+        width: 100%;
+        flex: 1 1 100%;
+        min-width: 0;
     }
 }
 
