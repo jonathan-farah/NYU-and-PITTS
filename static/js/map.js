@@ -1,5 +1,6 @@
 const CAMPUS_CENTER = [40.4443, -79.9606];
 const CAMPUS_ZOOM = 16;
+let dropMarkerMode = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeMap();
@@ -18,6 +19,18 @@ function initializeMap() {
     // No specific location markers for now
 
     window.pittMap = map;
+    
+    // Add click handler for dropping markers
+    map.on('click', function(e) {
+        if (dropMarkerMode) {
+            const title = prompt('Enter marker title:');
+            if (title) {
+                const description = prompt('Enter marker description (optional):') || '';
+                addCustomMarker([e.latlng.lat, e.latlng.lng], title, description);
+                toggleDropMarkerMode(); // Turn off drop mode after placing marker
+            }
+        }
+    });
 }
 
 // Set up event listeners for map controls
@@ -29,6 +42,32 @@ function setupEventListeners() {
                 window.pittMap.setView(CAMPUS_CENTER, CAMPUS_ZOOM);
             }
         });
+    }
+
+    const dropMarkerButton = document.getElementById('drop-marker');
+    if (dropMarkerButton) {
+        dropMarkerButton.addEventListener('click', function() {
+            toggleDropMarkerMode();
+        });
+    }
+}
+
+// Toggle drop marker mode on/off
+function toggleDropMarkerMode() {
+    dropMarkerMode = !dropMarkerMode;
+    const button = document.getElementById('drop-marker');
+    const map = window.pittMap;
+    
+    if (dropMarkerMode) {
+        button.textContent = 'Cancel Drop';
+        button.classList.remove('btn-secondary');
+        button.classList.add('btn-warning');
+        map.getContainer().style.cursor = 'crosshair';
+    } else {
+        button.textContent = 'Drop Marker';
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-secondary');
+        map.getContainer().style.cursor = '';
     }
 }
 
