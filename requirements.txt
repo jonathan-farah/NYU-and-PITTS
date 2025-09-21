@@ -1,14 +1,4 @@
-# PittFind Backend Dependencies
-# Flask web framework for Python
-
 Flask==3.0.0
 Werkzeug==3.0.1
 requests
 geopy
-
-# Additional dependencies for future expansion:
-# Flask-CORS==4.0.0          # For CORS support when adding API endpoints
-# python-dotenv==1.0.0       # For environment variable management
-# requests==2.31.0           # For making HTTP requests to external APIs
-# geopy==2.4.1               # For geocoding and distance calculations
-# networkx==3.2.1            # For pathfinding algorithms
