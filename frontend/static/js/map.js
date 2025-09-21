@@ -396,7 +396,8 @@ function setupEventListeners() {
             const lat = ev.latitude || ev.lat;
             const lng = ev.longitude || ev.lng;
             if (lat && lng) {
-                const m = L.marker([parseFloat(lat), parseFloat(lng)], { title: ev.name || 'Event' });
+                // Give event markers a high z-index so they display above route polylines/markers
+                const m = L.marker([parseFloat(lat), parseFloat(lng)], { title: ev.title || ev.name || 'Event', zIndexOffset: 1000, riseOnHover: true });
                 // include a small link to view all events for this building
                 const bId = ev.building_rowid || ev.building_id || ev.building || ev.buildingRowId || ev.buildingRow || null;
                     const popupHtml = `
@@ -638,6 +639,10 @@ function setupEventListeners() {
             fitSelectedRoutes: true,
             lineOptions: { styles: [{ color: 'blue', weight: 5 }] }
         }).addTo(window.pittMap);
+        // Ensure event markers layer is on top so markers at destination aren't obscured by route polylines
+        try {
+            if (eventsLayer && eventsLayer.bringToFront) eventsLayer.bringToFront();
+        } catch (e) {}
     }
 
     if (startSelect && endSelect) {
