@@ -399,20 +399,27 @@ function setupEventListeners() {
                 const m = L.marker([parseFloat(lat), parseFloat(lng)], { title: ev.name || 'Event' });
                 // include a small link to view all events for this building
                 const bId = ev.building_rowid || ev.building_id || ev.building || ev.buildingRowId || ev.buildingRow || null;
-                const popupHtml = `
-                    <div class="popup-event">
-                        <h3>${ev.title || ev.name || 'Event'}</h3>
-                        <p>Held by: ${ev.organization || ''}</p>
-                        <p>${ev.description || ''}</p>
-                        <p class="text-muted">${ev.time || ''}</p>
-                        ${bId ? `<p><a href="#" class="view-all-events" data-bid="${bId}">View all events at this building</a></p>` : ''}
-                        ${ev.id ? `<button class="remove-event-btn" data-eventid="${ev.id}">Remove</button>` : ''}
-                    </div>
-                `;
+                    const popupHtml = `
+                        <div class="popup-event">
+                            <h3>${ev.title || ev.name || 'Event'}</h3>
+                            <p>Held by: ${ev.organization || ''}</p>
+                            <p>${ev.description || ''}</p>
+                            <p class="text-muted">${ev.time || ''}</p>
+                            ${bId ? `<div style="margin-bottom: 8px;"><a href="#" class="view-all-events" data-bid="${bId}">View all events at this building</a></div>` : ''}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                                <div style="flex: 1; text-align: left;">
+                                    ${ev.id ? `<button class="remove-event-btn" data-eventid="${ev.id}">Remove</button>` : ''}
+                                </div>
+                                <div style="flex: 1; text-align: right;">
+                                    <button class="goto-event-btn" data-buildingid="${ev.building_rowid || bId}">Go To</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 m.bindPopup(popupHtml);
                 m.on('popupopen', function() {
-                    // attach click handler for "View all events"
                     setTimeout(() => {
+                        // attach click handler for "View all events"
                         const link = document.querySelector('.view-all-events[data-bid="' + bId + '"]');
                         if (link) {
                             link.addEventListener('click', function(evnt) {
@@ -435,6 +442,19 @@ function setupEventListeners() {
                                             }
                                         })
                                         .catch(() => alert('Failed to remove event.'));
+                                }
+                            });
+                        }
+                        // attach click handler for go to button
+                        const gotoBtn = document.querySelector('.goto-event-btn[data-buildingid="' + (ev.building_rowid || bId) + '"]');
+                        if (gotoBtn) {
+                            gotoBtn.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const endSelect = document.getElementById('route-end');
+                                if (endSelect) {
+                                    endSelect.value = (ev.building_rowid || bId);
+                                    endSelect.dispatchEvent(new Event('change'));
+                                    m.closePopup();
                                 }
                             });
                         }
@@ -520,15 +540,17 @@ function setupEventListeners() {
                     <p><strong>Organization:</strong> ${ev.organization || ''}</p>
                     <p>${ev.description || ''}</p>
                     <p class=\"text-muted\">${ev.time || ''}</p>
-                    ${ev.id ? `<button class='remove-event-btn' data-eventid='${ev.id}'>Remove</button>` : ''}`;
-                // Attach remove handler after adding to DOM
+                    <div style='display: flex; justify-content: space-between; align-items: center; margin-top: 8px;'>
+                        ${ev.id ? `<button class='remove-event-btn' data-eventid='${ev.id}'>Remove</button>` : ''}
+                        <button class='goto-event-btn' data-buildingid='${ev.building_rowid || buildingId}'>Go To</button>
+                    </div>`;
                 container.appendChild(n);
                 node = node.next;
             }
-            // Attach remove handlers for all buttons in the modal
+            // Attach handlers for remove and go to buttons
             setTimeout(() => {
-                const btns = container.querySelectorAll('.remove-event-btn');
-                btns.forEach(btn => {
+                const removeBtns = container.querySelectorAll('.remove-event-btn');
+                removeBtns.forEach(btn => {
                     btn.addEventListener('click', function(e) {
                         e.stopPropagation();
                         const eventId = btn.getAttribute('data-eventid');
@@ -544,6 +566,21 @@ function setupEventListeners() {
                                     }
                                 })
                                 .catch(() => alert('Failed to remove event.'));
+                        }
+                    });
+                });
+                const gotoBtns = container.querySelectorAll('.goto-event-btn');
+                gotoBtns.forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const bId = btn.getAttribute('data-buildingid');
+                        const endSelect = document.getElementById('route-end');
+                        if (endSelect && bId) {
+                            endSelect.value = bId;
+                            endSelect.dispatchEvent(new Event('change'));
+                            // Optionally close modal after setting destination
+                            const modal = document.getElementById('events-list-modal');
+                            if (modal) modal.style.display = 'none';
                         }
                     });
                 });
