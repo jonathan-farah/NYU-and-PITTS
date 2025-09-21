@@ -1,3 +1,19 @@
+// Help modal logic
+document.addEventListener('DOMContentLoaded', function() {
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const helpClose = document.getElementById('help-close');
+    if (helpBtn && helpModal) {
+        helpBtn.addEventListener('click', function() {
+            helpModal.style.display = 'flex';
+        });
+    }
+    if (helpClose && helpModal) {
+        helpClose.addEventListener('click', function() {
+            helpModal.style.display = 'none';
+        });
+    }
+});
 const CAMPUS_CENTER = [40.4443, -79.9606];
 const CAMPUS_ZOOM = 16;
 let dropMarkerMode = false;

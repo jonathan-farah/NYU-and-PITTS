@@ -1,3 +1,44 @@
+/* Help button in header */
+/* Bigger help button */
+.help-btn {
+    position: absolute;
+    right: 32px;
+    top: 24px;
+    background: #fff;
+    color: #003366;
+    border: none;
+    border-radius: 50%;
+    width: 65px;
+    height: 65px;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: background 0.2s;
+    z-index: 10;
+}
+.help-btn:hover {
+    background: #e6f0fa;
+}
+
+/* Modal close (X) button */
+/* Modal close (X) button inside popup box */
+.modal-box {
+    position: relative;
+}
+.modal-close {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #003366;
+    cursor: pointer;
+    z-index: 20;
+    padding: 0;
+    line-height: 1;
+}
 /* Center header bar horizontally */
 .centered-header {
     justify-content: center;
