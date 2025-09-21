@@ -1,7 +1,7 @@
 
-# PittFind Campus Map Web App
+# PittFind
 
-PittFind is a web application for exploring the University of Pittsburgh campus, finding buildings, and managing campus events. Users can view an interactive map, create and remove events at buildings, find walking routes, and see their current location.
+**PittFind** is a web application for exploring the University of Pittsburgh campus and managing campus events. Users can view an interactive map, create and remove events at buildings, find walking routes, and see their current location.
 
 ## What It Does
 
