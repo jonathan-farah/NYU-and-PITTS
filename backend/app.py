@@ -8,6 +8,46 @@ app = Flask(__name__,
             static_folder='../frontend/static')
 app.config['SECRET_KEY'] = 'pittfind-hackathon-2025'
 
+# API endpoint to delete an event by id
+@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+def api_delete_event(event_id):
+    db = get_db_path()
+    if not db:
+        return jsonify({'error': 'Database not found.'}), 500
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute('DELETE FROM events WHERE id = ?', (event_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+# API endpoint to create a new event
+@app.route('/api/events', methods=['POST'])
+def api_create_event():
+    data = request.get_json(force=True)
+    required = ['building_rowid', 'latitude', 'longitude', 'title', 'organization', 'description']
+    if not all(k in data for k in required):
+        return jsonify({'error': 'Missing required event fields.'}), 400
+    db = get_db_path()
+    if not db:
+        return jsonify({'error': 'Database not found.'}), 500
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT INTO events (building_rowid, latitude, longitude, title, organization, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (
+        data['building_rowid'],
+        data['latitude'],
+        data['longitude'],
+        data['title'],
+        data['organization'],
+        data['description']
+    ))
+    conn.commit()
+    event_id = cur.lastrowid
+    conn.close()
+    return jsonify({'success': True, 'event_id': event_id})
+
 @app.route('/')
 def index():
     """Serve the main map page"""

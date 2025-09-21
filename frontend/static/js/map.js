@@ -349,8 +349,31 @@ function setupEventListeners() {
                     alert('Selected building does not have coordinates.');
                     return;
                 }
-                addCustomEventMarker([parseFloat(lat), parseFloat(lng)], titleInput.value || (b.Building_Name || b.name || 'Event'), orgInput.value || '', descInput.value || '');
-                closePlaceMarkerModal();
+                // Save event to backend
+                fetch('/api/events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        building_rowid: bid,
+                        latitude: parseFloat(lat),
+                        longitude: parseFloat(lng),
+                        title: titleInput.value || (b.Building_Name || b.name || 'Event'),
+                        organization: orgInput.value || '',
+                        description: descInput.value || ''
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadEvents(); // reload events from DB
+                        closePlaceMarkerModal();
+                    } else {
+                        alert('Failed to save event: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(() => {
+                    alert('Failed to save event.');
+                });
             });
     }
 
@@ -378,10 +401,12 @@ function setupEventListeners() {
                 const bId = ev.building_rowid || ev.building_id || ev.building || ev.buildingRowId || ev.buildingRow || null;
                 const popupHtml = `
                     <div class="popup-event">
-                        <h3>${ev.name || 'Event'}</h3>
+                        <h3>${ev.title || ev.name || 'Event'}</h3>
+                        <p>Held by: ${ev.organization || ''}</p>
                         <p>${ev.description || ''}</p>
                         <p class="text-muted">${ev.time || ''}</p>
                         ${bId ? `<p><a href="#" class="view-all-events" data-bid="${bId}">View all events at this building</a></p>` : ''}
+                        ${ev.id ? `<button class="remove-event-btn" data-eventid="${ev.id}">Remove</button>` : ''}
                     </div>
                 `;
                 m.bindPopup(popupHtml);
@@ -393,6 +418,24 @@ function setupEventListeners() {
                             link.addEventListener('click', function(evnt) {
                                 evnt.preventDefault();
                                 openEventsListModal(bId);
+                            });
+                        }
+                        // attach click handler for remove button
+                        const removeBtn = document.querySelector('.remove-event-btn[data-eventid="' + ev.id + '"]');
+                        if (removeBtn) {
+                            removeBtn.addEventListener('click', function() {
+                                if (confirm('Remove this event?')) {
+                                    fetch('/api/events/' + ev.id, { method: 'DELETE' })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                loadEvents();
+                                            } else {
+                                                alert('Failed to remove event: ' + (data.error || 'Unknown error'));
+                                            }
+                                        })
+                                        .catch(() => alert('Failed to remove event.'));
+                                }
                             });
                         }
                     }, 50);
@@ -460,12 +503,12 @@ function setupEventListeners() {
         // find building name for display
         const b = buildingsCache.find(x => String(x.id) === String(buildingId));
         nameEl.textContent = b ? (b.Building_Name || b.name || b.Abbr || `Bldg ${b.BldgNo}`) : `Building ${buildingId}`;
-        // render linked list
+        // render scrollable list
         listEl.innerHTML = '';
         const ll = buildingEventsMap[String(buildingId)];
         const container = document.createElement('div');
         container.className = 'events-list';
-        if (!ll) {
+        if (!ll || !ll.head) {
             container.textContent = 'No events found for this building.';
         } else {
             let node = ll.head;
@@ -473,20 +516,49 @@ function setupEventListeners() {
                 const ev = node.value;
                 const n = document.createElement('div');
                 n.className = 'event-node';
-                n.innerHTML = `<h4>${ev.name || 'Event'}</h4><p>${ev.time || ''} — ${ev.description || ''}</p>`;
+                n.innerHTML = `<h4>${ev.title || ev.name || 'Event'}</h4>
+                    <p><strong>Organization:</strong> ${ev.organization || ''}</p>
+                    <p>${ev.description || ''}</p>
+                    <p class=\"text-muted\">${ev.time || ''}</p>
+                    ${ev.id ? `<button class='remove-event-btn' data-eventid='${ev.id}'>Remove</button>` : ''}`;
+                // Attach remove handler after adding to DOM
                 container.appendChild(n);
                 node = node.next;
             }
+            // Attach remove handlers for all buttons in the modal
+            setTimeout(() => {
+                const btns = container.querySelectorAll('.remove-event-btn');
+                btns.forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const eventId = btn.getAttribute('data-eventid');
+                        if (eventId && confirm('Remove this event?')) {
+                            fetch('/api/events/' + eventId, { method: 'DELETE' })
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        openEventsListModal(buildingId); // reload modal
+                                        loadEvents(); // reload map markers
+                                    } else {
+                                        alert('Failed to remove event: ' + (data.error || 'Unknown error'));
+                                    }
+                                })
+                                .catch(() => alert('Failed to remove event.'));
+                        }
+                    });
+                });
+            }, 50);
         }
         listEl.appendChild(container);
         modal.style.display = 'flex';
     }
 
-    // Close events modal
-    const eventsModalClose = document.getElementById('events-modal-close');
-    if (eventsModalClose) eventsModalClose.addEventListener('click', function() {
-        const modal = document.getElementById('events-list-modal');
-        if (modal) modal.style.display = 'none';
+    // Close events modal (robust for dynamically opened modals)
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'events-modal-close') {
+            const modal = document.getElementById('events-list-modal');
+            if (modal) modal.style.display = 'none';
+        }
     });
 
     async function findPath() {
