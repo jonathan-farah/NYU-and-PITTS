@@ -1,3 +1,33 @@
+/* Center header bar horizontally */
+.centered-header {
+    justify-content: center;
+}
+
+/* Center main content horizontally */
+.centered-main {
+    justify-content: center;
+}
+
+/* Make buttons closer together */
+.closer-buttons .route-select-group {
+    gap: 10px;
+}
+.closer-group {
+    gap: 7px;
+    padding-left: 70px;
+}
+
+/* Larger map on right */
+.large-map {
+    margin-top: 30px;
+    width: 850px;
+    height: 600px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    border: 3px solid #003366;
+    margin-bottom: 30px;
+}
 /* Reset and base styles */
 * {
     margin: 0;
@@ -18,53 +48,78 @@ body {
     padding: 0 20px;
 }
 
+/* New header bar layout */
 .header {
-    background: linear-gradient(135deg, #003366 0%, #1a4d80 100%);
+    background: #013594;
     color: white;
-    padding: 2rem 0;
-    text-align: center;
+    padding: 1.2rem 0 0.7rem 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
+.header-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    justify-content: flex-start;
+    padding-left: 50px;
+}
 
-.header h1 {
-    font-size: 2.5rem;
+.pitt-logo {
+    height: 54px;
+    width: auto;
+    margin-right: 10px;
+    margin-top: 2px;
+}
+.header-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-top: 2px;
+}
+.pittfind-title {
+    font-size: 2.2rem;
     font-weight: bold;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.1rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
-
-.header p {
-    font-size: 1.2rem;
-    opacity: 0.9;
+.oakland-map {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    margin-left: 2px;
+    margin-top: 2px;
 }
 
-.main-content {
-    padding: 2rem 0;
-    min-height: calc(100vh - 200px);
-}
-
-.map-container {
-    width: 100%;
-    height: 600px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    margin-bottom: 2rem;
-    border: 3px solid #003366;
-}
-
-.map-controls {
+/* Main layout: flex row for controls and map */
+.main-flex {
     display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
+    flex-direction: row;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
-
-.control-group {
+.map-controls-vertical {
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 340px;
+    max-width: 380px;
+    margin-top: 50px;
+    gap: 0;
 }
+.route-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 0;
+}
+/* .small-map is replaced by .large-map for main layout */
+
+/* Remove old control-group styles, replaced by .button-group and .route-select-group */
 
 /* Route select + filter input sizing
    Keep the filter typing bars at a large fixed width on desktop (don't shrink)
@@ -75,8 +130,6 @@ body {
     /* fixed preferred width on wide screens */
     width: 340px;
     min-width: 220px;
-    /* prevent flex children from shrinking below this width */
-    flex: 0 0 340px;
 }
 
 .route-select input[type="search"],
@@ -108,24 +161,34 @@ body {
     text-align: center;
 }
 
+.btn-success {
+    background: #ffb81c;
+    color: #003594;
+}
+
+.btn-success:hover {
+    background: #e6a519;
+    transform: translateY(-2px);
+}
+
 .btn-primary {
-    background: linear-gradient(135deg, #003366 0%, #1a4d80 100%);
+    background: #003594;
     color: white;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #1a4d80 0%, #003366 100%);
+    background: #012568;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 51, 102, 0.3);
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    background: #003594;
     color: white;
 }
 
 .btn-secondary:hover {
-    background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+    background: #012568;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
@@ -142,7 +205,7 @@ body {
 }
 
 .footer {
-    background-color: #003366;
+    background-color: #013594;
     color: white;
     text-align: center;
     padding: 1.5rem 0;
@@ -153,34 +216,39 @@ body {
     opacity: 0.8;
 }
 
-@media (max-width: 768px) {
-    .header h1 {
-        font-size: 2rem;
+@media (max-width: 900px) {
+    .main-flex {
+        flex-direction: column;
+        gap: 18px;
     }
-    
-    .header p {
+    .large-map {
+        width: 100%;
+        height: 350px;
+        margin-bottom: 0;
+    }
+    .map-controls-vertical {
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+@media (max-width: 768px) {
+    .header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .pitt-logo {
+        height: 40px;
+    }
+    .pittfind-title {
+        font-size: 1.5rem;
+    }
+    .oakland-map {
         font-size: 1rem;
     }
-    
-    .map-container {
-        height: 400px;
-        margin: 0 10px 2rem 10px;
-    }
-    
-    .control-group {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .btn {
-        width: 200px;
-    }
-
-    /* Make route selectors full-width on smaller screens */
-    .route-select {
-        width: 100%;
-        flex: 1 1 100%;
-        min-width: 0;
+    .small-map {
+        height: 250px;
     }
 }
 

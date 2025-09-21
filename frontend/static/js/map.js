@@ -43,7 +43,6 @@ function setupEventListeners() {
     const toggleLocationButton = document.getElementById('toggle-location');
     if (toggleLocationButton) {
         toggleLocationButton.addEventListener('click', function() {
-            // If tracker exists, stop it
             if (window.pittLocationTracker) {
                 try {
                     window.pittLocationTracker.stop();
@@ -55,7 +54,6 @@ function setupEventListeners() {
                 toggleLocationButton.classList.remove('btn-danger');
                 toggleLocationButton.classList.add('btn-outline-primary');
             } else {
-                // Start tracking
                 try {
                     window.pittLocationTracker = startTrackingCurrentLocation();
                     toggleLocationButton.textContent = 'Hide My Location';
@@ -69,6 +67,7 @@ function setupEventListeners() {
         });
     }
 
+    // No Show Events button anymore
     // Populate building selects and handle pathfinding
     const startSelect = document.getElementById('route-start');
     const endSelect = document.getElementById('route-end');
@@ -313,29 +312,30 @@ function setupEventListeners() {
     const placeCancel = document.getElementById('place-marker-cancel');
     if (placeCancel) placeCancel.addEventListener('click', closePlaceMarkerModal);
     if (placeConfirm) {
-        placeConfirm.addEventListener('click', function() {
-            const placeSelect = document.getElementById('place-marker-building');
-            const titleInput = document.getElementById('place-marker-title');
-            const descInput = document.getElementById('place-marker-desc');
-            if (!placeSelect || !placeSelect.value) {
-                alert('Please choose a building to place the marker at.');
-                return;
-            }
-            const bid = placeSelect.value;
-            const b = buildingsCache.find(x => String(x.id) === String(bid));
-            if (!b) {
-                alert('Selected building not found.');
-                return;
-            }
-            const lat = b.latitude || b.lat;
-            const lng = b.longitude || b.lng;
-            if (!(lat && lng)) {
-                alert('Selected building does not have coordinates.');
-                return;
-            }
-            addCustomMarker([parseFloat(lat), parseFloat(lng)], titleInput.value || (b.Building_Name || b.name || 'Marker'), descInput.value || '');
-            closePlaceMarkerModal();
-        });
+            placeConfirm.addEventListener('click', function() {
+                const placeSelect = document.getElementById('place-marker-building');
+                const titleInput = document.getElementById('place-marker-title');
+                const orgInput = document.getElementById('place-marker-Organization');
+                const descInput = document.getElementById('place-marker-desc');
+                if (!placeSelect || !placeSelect.value) {
+                    alert('Please choose a building to place the event at.');
+                    return;
+                }
+                const bid = placeSelect.value;
+                const b = buildingsCache.find(x => String(x.id) === String(bid));
+                if (!b) {
+                    alert('Selected building not found.');
+                    return;
+                }
+                const lat = b.latitude || b.lat;
+                const lng = b.longitude || b.lng;
+                if (!(lat && lng)) {
+                    alert('Selected building does not have coordinates.');
+                    return;
+                }
+                addCustomEventMarker([parseFloat(lat), parseFloat(lng)], titleInput.value || (b.Building_Name || b.name || 'Event'), orgInput.value || '', descInput.value || '');
+                closePlaceMarkerModal();
+            });
     }
 
     function renderEventMarkers(events) {
@@ -567,12 +567,15 @@ function toggleDropMarkerMode() {
 }
 
 // Add a custom marker to the map
-function addCustomMarker(coords, title, description) {
+function addCustomEventMarker(coords, title, organization, description) {
     if (window.pittMap) {
-        const marker = L.marker(coords).addTo(window.pittMap);
+        const marker = L.marker(coords, {
+            title: title
+        }).addTo(window.pittMap);
         marker.bindPopup(`
-            <div class="popup-content">
+            <div class="popup-event">
                 <h3>${title}</h3>
+                <p>${organization}</p>
                 <p>${description}</p>
             </div>
         `);
