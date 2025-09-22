@@ -1,19 +1,35 @@
 
 # PittFind
 
-**PittFind** is a web application for exploring the University of Pittsburgh campus and managing campus events. Users can view an interactive map, create and remove events at buildings, find walking routes, and see their current location.
+**PittFind** is a full-stack web application developed by a 4-person team during SteelHacks 2025 (24-hour hackathon). It helps University of Pittsburgh students explore the campus and manage club events through an interactive map.
 
-## What It Does
+## Features
 
 - Displays an interactive campus map with building markers
 - Allows users to create, view, and remove events at campus buildings
 - Provides walking directions between buildings
 - Lets users show/hide their current location on the map
-- Includes a help modal for user guidance
+- Help modal for user guidance
 
 ## Technologies Used
-
-- **Frontend**: HTML, CSS, JavaScript, Leaflet for map rendering
+- **Frontend**: HTML, CSS, JavaScript, Leaflet.js
 - **Backend**: Python, Flask
-- **Database**: SQLite for storing buildings and events
+- **Database**: SQLite
 - **Map Data**: OpenStreetMap tiles
+
+## How to Run
+
+1. **Install dependencies**  
+	Run `pip install -r requirements.txt` in the project root
+
+2. **Start the backend**  
+	Run `python backend/app.py` to start the Flask server
+
+3. **Access the frontend**  
+	Open your browser and go to `http://localhost:5000` to use the app
+
+## Contributors
+- Christopher Achkar
+- Jonathan Farah
+- Christopher Fu
+- Sidharth Rajesh
