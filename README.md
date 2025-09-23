@@ -23,7 +23,7 @@
 	Run `pip install -r requirements.txt` in the project root
 
 2. **Start the backend**  
-	Run `python backend/app.py` to start the Flask server
+	Run `python3 backend/app.py` to start the Flask server
 
 3. **Access the frontend**  
 	Open your browser and go to `http://localhost:5000` to use the app
